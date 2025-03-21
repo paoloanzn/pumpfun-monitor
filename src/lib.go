@@ -78,16 +78,26 @@ func (pMessageQueue *MessageQueue) AddMessage(msg []byte) error {
 	}
 }
 
-func (pMessageQueue *MessageQueue) ConsumeMessage() ([]byte, error){
+func (pMessageQueue *MessageQueue) ConsumeMessage() ([]byte, error) {
+	pMessageQueue.Mu.Lock()
+	defer pMessageQueue.Mu.Unlock()
+
 	if pMessageQueue.Index <= 0 {
 		return nil, errors.New("Queue is empty.")
 	}
 
-	pMessageQueue.Mu.Lock()
-	defer pMessageQueue.Mu.Unlock()
-
 	pMessageQueue.Index -= 1
-	return pMessageQueue.Queue[pMessageQueue.Index], nil
+	msg := pMessageQueue.Queue[pMessageQueue.Index]
+
+	return msg, nil
+}
+
+func (pMessageQueue *MessageQueue) ReadMessage() ([]byte, error){
+	if pMessageQueue.Index <= 0 {
+		return nil, errors.New("Queue is empty.")
+	}
+
+	return pMessageQueue.Queue[pMessageQueue.Index - 1], nil
 }
 
 func createNewMessageQueue() (*MessageQueue, error) {
