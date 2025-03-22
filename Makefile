@@ -12,7 +12,7 @@ build:
 	go build -o ${BUILD_FOLDER}/${BINARY_NAME} ${SRC_FOLDER}/${GO_FILES}
 
 run: build
-	@./${BUILD_FOLDER}/${BINARY_NAME} start
+	@./${BUILD_FOLDER}/${BINARY_NAME} $(ARGS)
 
 clean:
 	@go clean

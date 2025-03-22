@@ -26,7 +26,7 @@ func (pWebSocketServer *WebSocketServer) Init() (error) {
 		defer conn.Close()
 	
 		for {
-			msg, err := pWebSocketServer.MessageQueue.ConsumeMessage()
+			msg, err := pWebSocketServer.MessageQueue.ConsumeMessage(pWebSocketServer.Uuid)
 			if err != nil {
 				continue
 			}
@@ -57,6 +57,6 @@ func createWebSocketServer(uuid string, pMessageQueue *MessageQueue) (error) {
 
 func startWebSocketServers(port int) (error) {
 	encodedPort := fmt.Sprintf(":%d", port)
-	http.ListenAndServe(encodedPort, nil)
+	go http.ListenAndServe(encodedPort, nil)
 	return nil
 }
