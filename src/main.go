@@ -7,6 +7,7 @@ import (
     "time"
     "flag"
     "encoding/json"
+    "net/http"
 )
 
 type Config struct {
@@ -135,27 +136,40 @@ func main() {
             os.Exit(1)
         }
 
-        err = startWebSocketServers(8080)
-        if err != nil {
-            logger.Error("Error:", err)
-            os.Exit(1)
-        }
-
         mintConsumers := map[string]interface{}{
             "uuids": mintConsumersIds,
         }
-
+        
         migrationConsumers := map[string]interface{}{
             "uuids": migrationConsumersIds,
         }
-
+        
         mintConsumersJsonData, err := json.MarshalIndent(mintConsumers, "", "    ")
         if err != nil {
             logger.Error("Error:", err)
             os.Exit(1)
         }
-
+        
         migrationConsumersJsonData, err := json.MarshalIndent(migrationConsumers, "", "    ")
+        if err != nil {
+            logger.Error("Error:", err)
+            os.Exit(1)
+        }
+        
+        mintConsumersHandler := func (w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(mintConsumers)
+        }
+        
+        migrationConsumersHandler := func (w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("Content-Type", "application/json")
+            json.NewEncoder(w).Encode(migrationConsumers)
+        }
+
+        http.HandleFunc("GET /mint-consumers", mintConsumersHandler)
+        http.HandleFunc("GET /migration-consumers", migrationConsumersHandler)    
+
+        err = startWebSocketServers(8080)
         if err != nil {
             logger.Error("Error:", err)
             os.Exit(1)
