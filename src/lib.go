@@ -100,8 +100,8 @@ func (mq *MessageQueue) AddMessage(msg []byte) error {
 
 
 func (mq *MessageQueue) ConsumeMessage(consumerID string) ([]byte, error) {
-	mq.Mu.RLock()
-	defer mq.Mu.RUnlock()
+	mq.Mu.Lock()
+	defer mq.Mu.Unlock()
 
 	readIdx, exists := mq.ConsumerIndices[consumerID]
 	if !exists {
