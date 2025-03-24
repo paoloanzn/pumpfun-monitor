@@ -65,7 +65,8 @@ const QUEUE_SIZE_LIMIT int = 10 * 1000
 type MessageQueue struct {
 	Queue [QUEUE_SIZE_LIMIT][]byte
 	WriteIndex int
-	ConsumerIndices map[string]int 
+	ConsumerIndices map[string]int
+	ConsumerChannels map[string]chan []byte 
 	Mu sync.RWMutex
 }
 
@@ -75,54 +76,45 @@ func (mq *MessageQueue) RegisterConsumer(consumerID string) {
 	
 	if _, exists := mq.ConsumerIndices[consumerID]; !exists {
 		mq.ConsumerIndices[consumerID] = 0
+		mq.ConsumerChannels[consumerID] = make(chan []byte, 100)
 	}
 }
 
 func (mq *MessageQueue) AddMessage(msg []byte) error {
 	mq.Mu.Lock()
-	defer mq.Mu.Unlock()
+    defer mq.Mu.Unlock()
 
-	minRead := mq.WriteIndex
-	for _, idx := range mq.ConsumerIndices {
-		if idx < minRead {
-			minRead = idx
-		}
-	}
-
-	if mq.WriteIndex - minRead >= QUEUE_SIZE_LIMIT {
-		return errors.New("queue full - slow consumers blocking progress")
-	}
-
-	mq.Queue[mq.WriteIndex % QUEUE_SIZE_LIMIT] = msg
-	mq.WriteIndex++
-	return nil
+    mq.Queue[mq.WriteIndex % QUEUE_SIZE_LIMIT] = msg
+    mq.WriteIndex++
+    
+    for consumerID, ch := range mq.ConsumerChannels {
+        mq.ConsumerIndices[consumerID]++
+        
+        select {
+        case ch <- msg:
+        default:
+        }
+    }
+    return nil
 }
 
-
-func (mq *MessageQueue) ConsumeMessage(consumerID string) ([]byte, error) {
-	mq.Mu.Lock()
-	defer mq.Mu.Unlock()
-
-	readIdx, exists := mq.ConsumerIndices[consumerID]
-	if !exists {
-		return nil, errors.New(fmt.Sprintf("unregistered consumer: %s", consumerID))
-	}
-
-	available := mq.WriteIndex - readIdx
-	if available <= 0 {
-		return nil, errors.New("no new messages")
-	}
-
-	queueIdx := readIdx % QUEUE_SIZE_LIMIT
-	msg := mq.Queue[queueIdx]
-
-	mq.ConsumerIndices[consumerID] = readIdx + 1
-	
-	return msg, nil
+func (mq *MessageQueue) GetConsumerChannel(consumerID string) (chan []byte, error) {
+    mq.Mu.RLock()
+    defer mq.Mu.RUnlock()
+    
+    ch, exists := mq.ConsumerChannels[consumerID]
+    if !exists {
+        return nil, errors.New(fmt.Sprintf("unregistered consumer: %s", consumerID))
+    }
+    return ch, nil
 }
+
 
 func createNewMessageQueue() (*MessageQueue, error) {
-	var pMessageQueue *MessageQueue = &MessageQueue{ConsumerIndices: make(map[string]int)}
+	var pMessageQueue *MessageQueue = &MessageQueue{
+		ConsumerIndices: make(map[string]int),
+		ConsumerChannels: make(map[string]chan []byte),
+	}
 	return pMessageQueue, nil
 }
 
