@@ -14,6 +14,8 @@ type Config struct {
 	MaxReconnections  int
 	MintWorkers       int
 	MigrationWorkers  int
+    DevMode bool
+    Host string
 }
 
 func printUsage() {
@@ -24,9 +26,10 @@ Commands:
   version  Show version information
 
 Start Options:
-  -max-recon           Maximum reconnection attempts (default: 100)
+  -max-recon            Maximum reconnection attempts (default: 100)
   -mint-workers         Number of mint monitoring workers (default: 1)
   -migration-workers    Number of migration monitoring workers (default: 1)
+  -dev                  Run on localhost
 `, os.Args[0])
 	
 	cmd := flag.NewFlagSet("", flag.ExitOnError)
@@ -40,6 +43,7 @@ func parseStartFlags() *Config {
 		MaxReconnections: 100,
 		MintWorkers:      1,
 		MigrationWorkers: 1,
+        DevMode: false,
 	}
 
 	cmd.IntVar(&config.MaxReconnections, "max-recon", config.MaxReconnections, 
@@ -48,6 +52,7 @@ func parseStartFlags() *Config {
 		"Number of mint monitoring workers")
 	cmd.IntVar(&config.MigrationWorkers, "migration-workers", config.MigrationWorkers, 
 		"Number of migration monitoring workers")
+    cmd.BoolVar(&config.DevMode, "dev", config.DevMode, "Run on localhost")
 
 	cmd.Parse(os.Args[2:])
 	return config
@@ -86,6 +91,13 @@ func main() {
 	switch os.Args[1] {
     case "start":
         config := parseStartFlags()
+
+        if config.DevMode {
+            logger.Info("Running in development mode.")
+            config.Host = "localhost:8080"
+        } else {
+            config.Host = "0.0.0.0:8080"
+        }
 
         mintMessageQueue, err := createNewMessageQueue()
         if err != nil {
@@ -169,7 +181,7 @@ func main() {
         http.HandleFunc("GET /mint-consumers", mintConsumersHandler)
         http.HandleFunc("GET /migration-consumers", migrationConsumersHandler)    
 
-        err = startWebSocketServers(8080)
+        err = startWebSocketServers(config.Host)
         if err != nil {
             logger.Error("Error:", err)
             os.Exit(1)
