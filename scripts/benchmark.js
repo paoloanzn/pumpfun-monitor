@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const HOST = process.env.HOST ?? 'localhost'
+
 const colors = Object.freeze({
     0: "\x1b[31m",
     1: "\x1b[32m",
@@ -17,7 +19,7 @@ function log(...args) {
 }
 
 async function getUUIDs() {
-    const response = await fetch('http://localhost:8080/mint-consumers');
+    const response = await fetch(`http://${HOST}:8080/mint-consumers`);
 
     const data = await response.json();
 
@@ -41,7 +43,7 @@ async function main() {
     Array.from(uuids).forEach(uuid => {
         const clients = process.env.CLIENTS ?? 1
         for (let i = 0; i < clients; i++){
-            const ws = new WebSocket(`ws://localhost:8080/${uuid}`);
+            const ws = new WebSocket(`ws://${HOST}:8080/${uuid}`);
             wsConns.push(ws);
         }
     });
