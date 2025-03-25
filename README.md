@@ -34,6 +34,7 @@ pumpfun-monitor start -mint-workers 3 -migration-workers 2 -max-recon 100
 - `-mint-workers`: Number of mint monitoring processes
 - `-migration-workers`: Migration monitoring processes
 - `-max-recon`: Maximum reconnection attempts
+- `-dev`: Run on localhost
 
 ### WebSocket Endpoints
 - **Mint Stream**: `ws://localhost:8080/{mint-uuid}`
