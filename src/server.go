@@ -3,7 +3,6 @@ package main
 import (
     "net/http"
     "github.com/gorilla/websocket"
-	"fmt"
 	"sync"
 )
 
@@ -96,8 +95,7 @@ func createWebSocketServer(uuid string, pMessageQueue *MessageQueue) (error) {
 	return nil
 }
 
-func startWebSocketServers(port int) (error) {
-	encodedPort := fmt.Sprintf(":%d", port)
-	go http.ListenAndServe(encodedPort, nil)
+func startWebSocketServers(addr string) (error) {
+	go http.ListenAndServe(addr, nil)
 	return nil
 }
